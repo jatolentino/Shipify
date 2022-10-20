@@ -1,0 +1,78 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: default
+  name: pod-reader
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "watch", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: read-pods
+  namespace: default
+subjects:
+- kind: ServiceAccount
+  name: default
+roleRef:
+  kind: Role
+  name: pod-reader
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shipify
+spec:
+  selector:
+    matchLabels:
+      app: shipify
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: shipify
+    spec:
+      containers:
+      - name: shipify
+        image: shipify:latest
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 4000
+        env:
+        - name: SECRET_KEY_BASE
+          value: "T/y+hmVsdfKsdh43gDSFfhEqLqe4ihEsifDsW6f9fsldfs+U6L7UEVEMrR"
+        - name: PORT
+          value: "4000"
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: shipify
+spec:
+  selector:
+    app: shipify
+  ports:
+    - port: 4000
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: default-ingress
+spec:
+  defaultBackend:
+    service:
+      name: shipify
+      port:
+        number: 4000
