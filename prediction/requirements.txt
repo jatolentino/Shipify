@@ -1,0 +1,7 @@
+pandas
+tensorflow
+numpy 
+flask
+flask_cors 
+scipy
+mysql-connector
